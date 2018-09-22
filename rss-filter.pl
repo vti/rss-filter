@@ -5,8 +5,8 @@ use Getopt::Long;
 use HTTP::Tiny;
 
 my $opt_url;
-my $opt_state = '/tmp/state';
-my $opt_rss   = '/tmp/filter.rss';
+my $opt_state  = '/tmp/state';
+my $opt_output = '/tmp/filter.rss';
 my $opt_filter;
 my $opt_exec;
 my $opt_verbose;
@@ -15,15 +15,16 @@ GetOptions(
     'state=s'  => \$opt_state,
     'exec=s'   => \$opt_exec,
     'filter=s' => \$opt_filter,
+    'output=s' => \$opt_output,
     'verbose'  => \$opt_verbose
 ) or die("Error in command line arguments\n");
 
 print STDERR "Mirroring $opt_url...\n" if $opt_verbose;
 
-my $result = HTTP::Tiny->new->mirror( $opt_url, $opt_rss );
+my $result = HTTP::Tiny->new->mirror( $opt_url, $opt_output );
 die 'request failed' unless $result->{success};
 
-my $rss = _slurp($opt_rss);
+my $rss = _slurp($opt_output);
 my $state = -f $opt_state ? _slurp($opt_state) : undef;
 
 if ( !$state ) {
