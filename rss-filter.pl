@@ -63,7 +63,7 @@ foreach my $item (@items) {
     }
 
     if ($opt_filter) {
-        if ( $item =~ m/$opt_filter/ ) {
+        if ( $item =~ m/$opt_filter/i ) {
             print STDERR "Matched filter\n" if $opt_verbose;
         }
         else {
