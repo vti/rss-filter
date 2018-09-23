@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Getopt::Long;
 use HTTP::Tiny;
+use Time::Piece;
 
 my $opt_url;
 my $opt_state  = '/tmp/state';
@@ -27,6 +28,10 @@ die 'request failed' unless $result->{success};
 my $rss = _slurp($opt_output);
 my $state = -f $opt_state ? _slurp($opt_state) : undef;
 
+my $rss_format = $rss =~ m/xmlns:atom/ ? 'atom' : $rss =~ m/<rdf:RDF/ ? 'rdf' : 'rss';
+
+print STDERR "Detected format: $rss_format\n" if $opt_verbose;
+
 if ( !$state ) {
     print STDERR "No state found, everything is new\n" if $opt_verbose;
 }
@@ -34,13 +39,22 @@ else {
     print STDERR "Last state found: $state\n" if $opt_verbose;
 }
 
-my @items = $rss =~ m{<item .*?>(.*?)</item>}mscg;
+my @items = $rss =~ m{<item.*?>(.*?)</item>}mscg;
 
 print STDERR sprintf( "Found %d items\n", scalar @items ) if $opt_verbose;
 
 my $first_date;
 foreach my $item (@items) {
-    my ($date) = $item =~ m{<dc:date>(.*?)</dc:date>};
+    my $date;
+
+    if ($rss_format eq 'rdf') {
+        ($date) = $item =~ m{<dc:date>(.*?)</dc:date>};
+    }
+    elsif ($rss_format eq 'atom') {
+        ($date) = $item =~ m{<pubDate>(.*?)</pubDate>};
+
+        $date = Time::Piece->strptime($date, "%a, %d %b %Y %H:%M:%S %z")->strftime('%F %T');
+    }
 
     $first_date //= $date;
 
@@ -58,12 +72,12 @@ foreach my $item (@items) {
         }
     }
 
-    print STDERR "New item: $item\n" if $opt_verbose;
+    my ($title) = $item =~ m{<title>(.*?)</title>}ms;
+    my ($link)  = $item =~ m{<link>(.*?)</link>}ms;
+
+    print STDERR "New item: $title\n" if $opt_verbose;
 
     if ($opt_exec) {
-        my ($title) = $item =~ m{<title>(.*?)</title>}ms;
-        my ($link)  = $item =~ m{<link>(.*?)</link>}ms;
-
         $ENV{TITLE} = $title;
         $ENV{LINK}  = $link;
 
