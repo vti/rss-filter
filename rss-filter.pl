@@ -28,7 +28,8 @@ die 'request failed' unless $result->{success};
 my $rss = _slurp($opt_output);
 my $state = -f $opt_state ? _slurp($opt_state) : undef;
 
-my $rss_format = $rss =~ m/xmlns:atom/ ? 'atom' : $rss =~ m/<rdf:RDF/ ? 'rdf' : 'rss';
+my $rss_format =
+  $rss =~ m/xmlns:atom/ ? 'atom' : $rss =~ m/<rdf:RDF/ ? 'rdf' : 'rss';
 
 print STDERR "Detected format: $rss_format\n" if $opt_verbose;
 
@@ -47,13 +48,14 @@ my $first_date;
 foreach my $item (@items) {
     my $date;
 
-    if ($rss_format eq 'rdf') {
-        ($date) = $item =~ m{<dc:date>(.*?)</dc:date>};
+    if ( $item =~ m{<dc:date>(.*?)</dc:date>} ) {
+        $date = $1;
     }
-    elsif ($rss_format eq 'atom') {
-        ($date) = $item =~ m{<pubDate>(.*?)</pubDate>};
+    elsif ( $item =~ m{<pubDate>(.*?)</pubDate>} ) {
+        $date = $1;
 
-        $date = Time::Piece->strptime($date, "%a, %d %b %Y %H:%M:%S %z")->strftime('%F %T');
+        $date = Time::Piece->strptime( $date, "%a, %d %b %Y %H:%M:%S %z" )
+          ->strftime('%F %T');
     }
 
     $first_date //= $date;
