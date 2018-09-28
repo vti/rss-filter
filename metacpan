@@ -8,29 +8,30 @@ use HTTP::Tiny;
 use File::Basename qw(basename);
 use CPAN::Changes;
 
-my $opt_last = 'wait-for-recent.txt';
-my $opt_rss  = '/tmp/recent.rss';
+my $opt_state  = 'wait-for-recent.txt';
+my $opt_output = '/tmp/recent.rss';
 my $opt_exec;
 my $opt_verbose;
 GetOptions(
-    'last=s'  => \$opt_last,
-    'exec=s'  => \$opt_exec,
-    'verbose' => \$opt_verbose
+    'state=s'  => \$opt_state,
+    'output=s' => \$opt_output,
+    'exec=s'   => \$opt_exec,
+    'verbose'  => \$opt_verbose
 ) or die("Error in command line arguments\n");
 
 print STDERR "Mirroring...\n" if $opt_verbose;
 
 my $result =
   HTTP::Tiny->new->mirror( 'https://metacpan.org/feed/recent?size=100',
-    $opt_rss );
+    $opt_output );
 die 'request failed' unless $result->{success};
 
-my $rss = _slurp($opt_rss);
+my $rss = _slurp($opt_output);
 
 my @releases =
   $rss =~ m{<rdf:li rdf:resource="https://metacpan\.org/release/(.*?)" />}g;
 
-my $last = -f $opt_last ? _slurp($opt_last) : undef;
+my $last = -f $opt_state ? _slurp($opt_state) : undef;
 
 if ( !$last ) {
     print STDERR "No last release found, taking everything\n"
@@ -49,7 +50,7 @@ exit 0 unless @releases;
 
 pop @releases while @releases > 20;
 
-_spew( $opt_last, $releases[0] );
+_spew( $opt_state, $releases[0] );
 
 foreach my $release (@releases) {
     print STDERR "Working on $release...\n" if $opt_verbose;
